@@ -26,17 +26,27 @@ class Universe:
             self.cells = new_gen(height, width)
         else:
             self.cells = origin
+        self.live_cells = [] 
+
+    def configure(self, live_cells):
+        for cell in live_cells:
+            self.cells[cell[0]][cell[1]] = 1
+            self.live_cells.append(cell)
 
     def evolve(self):
         next_gen = new_gen(self.height, self.width)
+        self.live_cells = []
         for i, row in enumerate(self.cells):
             for j, cell in enumerate(row):
-                next_gen[i][j] = self.get_next_cell_state((i,j))
+                next_gen[i][j] = next_cell = self.get_next_cell_state((i, j))
+                if next_cell:
+                    self.live_cells.append((i,j))
         self.cells = next_gen
         self.age += 1
 
     def print_universe(self):
         print "Generation %d: " % self.age
+        #print "Live Cells: ", self.live_cells
         for row in self.cells:
             print row
 

@@ -3,6 +3,7 @@ import pygame
 import random
 import sys
 from pygame.locals import *
+from universe import *
 
 def draw_lines(surface):
     for x in range(1, GRID_SIZE):
@@ -32,8 +33,8 @@ def get_cell_indices((x,y)):
     return None
 
 # drawing sizes
-GRID_SIZE = 4
-CELL_SIZE = 50
+GRID_SIZE = 100
+CELL_SIZE = 10
 LINE_WIDTH = 1
 SIZE = GRID_SIZE * CELL_SIZE + LINE_WIDTH * (GRID_SIZE - 1)
 SCREEN_SIZE = (SIZE, SIZE)
@@ -58,6 +59,10 @@ if __name__ == "__main__":
     mainclock = pygame.time.Clock()
     screen = pygame.display.set_mode(SCREEN_SIZE)
     pygame.display.set_caption('The Game of LIFE')
+    ready = False 
+
+    uni = Universe(100,100)
+    selected = None
     live_cells = []
     while True:
         rect_list = []
@@ -66,20 +71,35 @@ if __name__ == "__main__":
                 pygame.quit()
                 sys.exit()
             elif event.type == MOUSEMOTION:
-                cell = get_cell_indices(event.pos)
+                cell = get_cell_indices(pygame.mouse.get_pos())
                 if cell:
                     rect_list.append((HOVER, cell))
             elif event.type == MOUSEBUTTONDOWN:
                 cell = get_cell_indices(event.pos)
                 if cell:
-                    rect_list.append((SELECT, cell))
+                    live_cells.append((SELECT, cell))
+                    selected = cell
             elif event.type == MOUSEBUTTONUP:
                 cell = get_cell_indices(event.pos)
-                if cell:
-                    live_cells.append((ALIVE, cell))
+                if cell :
+                    if cell == selected:
+                        if (ALIVE, cell) in live_cells:
+                            live_cells.remove((ALIVE, cell))
+                        else:
+                            live_cells.append((ALIVE, cell))
+                    live_cells.remove((SELECT, selected))
+                    selected = None
+            elif event.type == KEYUP:
+                ready = True
+                dump, live = zip(*live_cells)
+                uni.configure(live)
+        if ready:
+            uni.evolve()
+            green = [GREEN]*len(uni.live_cells)
+            live_cells = zip(green, uni.live_cells)
         screen.fill(BG_COLOR)
         draw_lines(screen)
         draw_cells(screen, rect_list)
         draw_cells(screen, live_cells)
         pygame.display.update()
-        mainclock.tick(10)
+        mainclock.tick(50)

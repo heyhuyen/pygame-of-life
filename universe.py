@@ -27,6 +27,14 @@ class Universe:
         else:
             self.cells = origin
 
+    def evolve(self):
+        next_gen = new_gen(self.height, self.width)
+        for i, row in enumerate(self.cells):
+            for j, cell in enumerate(row):
+                next_gen[i][j] = self.get_next_cell_state((i,j))
+        self.cells = next_gen
+        self.age += 1
+
     def print_universe(self):
         print "Generation %d: " % self.age
         for row in self.cells:

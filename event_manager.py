@@ -63,14 +63,9 @@ class EventManager:
     def __init__(self):
         from weakref import WeakKeyDictionary
         self.listeners = WeakKeyDictionary()
-        self.eventQ = []
 
     def register_listener(self, listener):
         self.listeners[listener] = 1
-
-    def unregister_listener(self, listener):
-        if listener in self.listeners:
-            del self.listeners[listener]
 
     def post(self, event):
         if not isinstance(event, TickEvent):

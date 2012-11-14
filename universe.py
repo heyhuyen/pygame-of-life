@@ -6,10 +6,10 @@ class Game:
     STATE_RUNNING = 'running'
     STATE_PAUSED = 'paused'
 
-    def __init__(self, event_manager):
+    def __init__(self, event_manager, width, height):
         self.event_manager = event_manager
         self.event_manager.register_listener(self)
-        self.universe = Universe(event_manager, 10, 10)
+        self.universe = Universe(event_manager, width, height)
         self.state = Game.STATE_CONFIG
 
     def start(self):
@@ -34,16 +34,12 @@ class Game:
 
 class Universe:
 
-    STATE_CONFIGURING = 0
-    STATE_CONFIGURED = 1
-
-    def __init__(self, event_manager, height, width):
+    def __init__(self, event_manager, width, height):
         self.event_manager = event_manager
         self.event_manager.register_listener(self)
 
-        self.state = Universe.STATE_CONFIGURING
-        self.width = height
-        self.height = width
+        self.width = width 
+        self.height = height 
         self.age = 0
         self.live_cells = [] 
         self.cells = self.new_gen(height, width) 
@@ -53,7 +49,6 @@ class Universe:
             for cell in live_cells:
                 self.cells[cell[0]][cell[1]] = 1
                 self.live_cells.append(cell)
-        self.state = Universe.STATE_CONFIGURED
         event = event_manager.UniverseConfiguredEvent(self)
         self.event_manager.post(event)
 

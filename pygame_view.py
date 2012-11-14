@@ -4,11 +4,8 @@ import event_manager
 import pdb
 
 # drawing sizes
-GRID_SIZE = 10
 CELL_SIZE = 50
-LINE_WIDTH = 1
-SIZE = GRID_SIZE * CELL_SIZE + LINE_WIDTH * (GRID_SIZE - 1)
-SCREEN_SIZE = (SIZE, SIZE)
+LINE_WIDTH = 5
 
 # drawing colors
 GREEN = (0, 255, 0)
@@ -31,17 +28,23 @@ HOVER = 2
 
 class PygameView:
     
-    def __init__(self, event_manager):
+    def __init__(self, event_manager, cols, rows):
         self.event_manager = event_manager
         self.event_manager.register_listener(self)
 
+        self.rows = rows
+        self.cols = cols
+        screen_width = cols * CELL_SIZE + LINE_WIDTH * (cols- 1)
+        screen_height = rows * CELL_SIZE + LINE_WIDTH * (rows- 1)
+
         pygame.init()
-        self.screen = pygame.display.set_mode(SCREEN_SIZE)
+        self.screen = pygame.display.set_mode((screen_width, screen_height))
         pygame.display.set_caption('The Game of LIFE')
         self.background = pygame.Surface(self.screen.get_size())
         self.background.fill(BG_COLOR)
         self.screen.blit(self.background, (0,0))
-        self.draw_lines(self.screen)
+        self.lines = []
+        self.draw_lines()
 
         self.live_sprites = pygame.sprite.RenderUpdates()
         self.selected = pygame.sprite.RenderUpdates()
@@ -96,6 +99,8 @@ class PygameView:
                 #check here
                 cell_sprite = CellSprite(SELECT, cell, self.selected)
                 #collisions = pygame.sprite.spritecollideany(cell_sprite, self.selected)
+        else:
+            self.cursor.empty()
 
     def select_start(self, pos):
         cell = self.get_cell_indices(pos)
@@ -116,20 +121,26 @@ class PygameView:
         return cell_list
 
     def get_cell_indices(self, (x,y)):
-        if x in range(1, SIZE-1) and y in range(1, SIZE-1):
-            cellnline = (CELL_SIZE + LINE_WIDTH)
-            i = y / cellnline
-            j = x / cellnline
-            if y % cellnline == 0 and x % cellnline == 0:
+        if not self.screen.get_rect().collidepoint((x,y)):
+            return None
+        for line in self.lines:
+            if line.collidepoint((x,y)):
                 return None
-            return (i,j)
-        return None
+
+        cell_plus_line = (CELL_SIZE + LINE_WIDTH)
+        return (y / cell_plus_line, x / cell_plus_line)
     
-    def draw_lines(self, surface):
-        for x in range(1, GRID_SIZE):
-            pos = CELL_SIZE * x + LINE_WIDTH/2 + LINE_WIDTH * (x-1)
-            pygame.draw.line(surface, LINE_COLOR, (pos, 0), (pos, SIZE), LINE_WIDTH)
-            pygame.draw.line(surface, LINE_COLOR, (0, pos), (SIZE, pos), LINE_WIDTH)
+    def draw_lines(self):
+        for col in range(1, self.cols):
+            pos = CELL_SIZE * col + LINE_WIDTH/2 + LINE_WIDTH * (col-1)
+            self.draw_line((pos, 0), (pos, self.screen.get_height()))
+
+        for row in range(1, self.rows):
+            pos = CELL_SIZE * row + LINE_WIDTH/2 + LINE_WIDTH * (row-1)
+            self.draw_line((0, pos), (self.screen.get_width(), pos))
+
+    def draw_line(self, start, end):
+        self.lines.append(pygame.draw.line(self.screen, LINE_COLOR, start, end, LINE_WIDTH))
 
 class CellSprite(pygame.sprite.Sprite):
     def __init__(self, state, coords, group=None):

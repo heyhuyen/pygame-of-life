@@ -46,16 +46,15 @@ class InputController:
                     ev = SelectEndEvent(event.pos)
                 if ev:
                     self.event_manager.post(ev)
-
-GRID_SIZE = (10,10)
-universe = None
+GRID_WIDTH = 10
+GRID_HEIGHT = 5
 
 def main():
     event_manager = EventManager()
-    game = Game(event_manager)
+    game = Game(event_manager, GRID_WIDTH, GRID_HEIGHT)
     spinner = CPUSpinnerController(event_manager)
     input_c = InputController(event_manager)
-    view = PygameView(event_manager)
+    view = PygameView(event_manager, GRID_WIDTH, GRID_HEIGHT)
     spinner.run()
 
 if __name__ == "__main__":

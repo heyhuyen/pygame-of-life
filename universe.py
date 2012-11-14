@@ -1,41 +1,69 @@
-BLOCK = [[0]*3, [0]+[1]*2, [0]+[1]*2]
-BLINKER = [[0]*3, [1]*3, [0]*3]
-TOAD = [[0]*4, [0]+[1]*3, [1]*3 +[0], [0]*4]
-BEACON = [[1]*2+[0]*2, [1]*2+[0]*2, [0]*2+[1]*2, [0]*2+[1]*2] 
-GLIDER = [  [0]*2+[1]+[0]*7,
-            [1]+[0]+[1]+[0]*7,
-            [0]+[1]*2+[0]*7,
-            [0]*10,
-            [0]*10,
-            [0]*10,
-            [0]*10,
-            [0]*10,
-            [0]*10,
-            [0]*10 ]
+import event_manager
+import pdb
 
-def new_gen(rows, cols):
-    return [[0]*cols for i in range(0, rows)]
+class Game:
+    STATE_CONFIG = 'configuring'
+    STATE_RUNNING = 'running'
+    STATE_PAUSED = 'paused'
+
+    def __init__(self, event_manager):
+        self.event_manager = event_manager
+        self.event_manager.register_listener(self)
+        self.universe = Universe(event_manager, 10, 10)
+        self.state = Game.STATE_CONFIG
+
+    def start(self):
+        # get configuration
+        self.universe.configure([(1,0), (2,1), (0,2), (1,2), (2,2)])
+        self.state = Game.STATE_PAUSED
+        event = event_manager.GameStartedEvent(self)
+        self.event_manager.post(event)
+
+    def notify(self, event):
+        if isinstance(event, event_manager.TickEvent):
+            if self.state == Game.STATE_CONFIG:
+                self.start()
+            elif self.state == Game.STATE_RUNNING:
+                self.universe.evolve()
+                ev = event_manager.EvolveEvent(self.universe.live_cells)
+                self.event_manager.post(ev)
+        elif isinstance(event, event_manager.RunEvent):
+            self.state = Game.STATE_RUNNING
+        elif isinstance(event, event_manager.PauseEvent):
+            self.state = Game.STATE_PAUSED
 
 class Universe:
 
-    def __init__(self, height, width, origin=None):
+    STATE_CONFIGURING = 0
+    STATE_CONFIGURED = 1
+
+    def __init__(self, event_manager, height, width):
+        self.event_manager = event_manager
+        self.event_manager.register_listener(self)
+
+        self.state = Universe.STATE_CONFIGURING
         self.width = height
         self.height = width
         self.age = 0
-        if not origin:
-            self.cells = new_gen(height, width)
-        else:
-            self.cells = origin
         self.live_cells = [] 
+        self.cells = self.new_gen(height, width) 
 
-    def configure(self, live_cells):
-        for cell in live_cells:
-            self.cells[cell[0]][cell[1]] = 1
-            self.live_cells.append(cell)
+    def configure(self, live_cells=None):
+        if live_cells:
+            for cell in live_cells:
+                self.cells[cell[0]][cell[1]] = 1
+                self.live_cells.append(cell)
+        self.state = Universe.STATE_CONFIGURED
+        event = event_manager.UniverseConfiguredEvent(self)
+        self.event_manager.post(event)
+
+    def new_gen(self, rows, cols):
+        self.dead_cells = [(i,j) for i in range(rows) for j in range(cols)]
+        self.live_cells = []
+        return [[0]*cols for i in range(0, rows)]
 
     def evolve(self):
-        next_gen = new_gen(self.height, self.width)
-        self.live_cells = []
+        next_gen = self.new_gen(self.height, self.width)
         for i, row in enumerate(self.cells):
             for j, cell in enumerate(row):
                 next_gen[i][j] = next_cell = self.get_next_cell_state((i, j))
@@ -43,6 +71,16 @@ class Universe:
                     self.live_cells.append((i,j))
         self.cells = next_gen
         self.age += 1
+    
+    def get_live_cells(self):
+        return self.live_cells
+
+    def notify(self, event):
+        if isinstance(event, event_manager.ConfigureRequest):
+            for cell in event.cells:
+                self.flip_cell_state(cell)
+            ev = event_manager.ConfigureEvent(self.live_cells)
+            self.event_manager.post(ev)
 
     def print_universe(self):
         print "Generation %d: " % self.age
@@ -55,6 +93,18 @@ class Universe:
            return self.cells[row][col]
         else:
             return 0
+    
+    def set_cell_state(self, (row, col), state):
+        self.cells[row][col] = state
+
+    def flip_cell_state(self, (row, col)):
+        #self.cells[row][col] = 0 if self.cells[row][col] else 1
+        if self.cells[row][col]:
+            self.cells[row][col] = 0
+            self.live_cells.remove((row,col))
+        else:
+            self.cells[row][col] = 1
+            self.live_cells.append((row, col))
 
     def get_cell_neighbors(self, (row, col)):
         x = [row - 1]*3 + [row]*2 + [row + 1]*3
@@ -69,3 +119,4 @@ class Universe:
             return int(live_neighbors in [2,3])
         else:
             return int(live_neighbors == 3)
+

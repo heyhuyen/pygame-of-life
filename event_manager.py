@@ -54,7 +54,5 @@ class EventManager:
         self.listeners[listener] = 1
 
     def post(self, event):
-        if not isinstance(event, TickEvent):
-            print event.name
         for listener in self.listeners:
             listener.notify(event)

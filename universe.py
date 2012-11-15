@@ -14,7 +14,9 @@ class Game:
         self.state = Game.STATE_CONFIG
 
     def start(self):
-        self.universe.set_origin([(1,0), (2,1), (0,2), (1,2), (2,2)])
+        self.universe.set_origin([(1,0), (2,1), (0,2), (1,2), (2,2),
+                                    (15,1), (15,2), (15,3), (15,4),
+                                    (14,4), (13,4), (12,3), (14,0), (12,0)])
         self.state = Game.STATE_PAUSED
 
         event = event_manager.GameStartedEvent(self)
@@ -87,10 +89,7 @@ class Universe:
             self.live_cells.append((row, col))
 
     def get_cell_state(self, (row, col)):
-        # wrap-around not yet implemented
-        if row in range(0, self.num_rows) and col in range(0, self.num_cols):
-            return self.cells[row][col]
-        return 0
+        return self.cells[row % self.num_rows][col % self.num_cols]
 
     def get_cell_neighbor_states(self, (x, y)):
         neighbors = [(x+dx, y+dy) for dx, dy in Universe.DELTAS]
@@ -103,4 +102,3 @@ class Universe:
             return int(num_live_neighbors in [2,3])
         else:
             return int(num_live_neighbors == 3)
-

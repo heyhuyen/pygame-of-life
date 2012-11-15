@@ -4,8 +4,8 @@ import event_manager
 import pdb
 
 # drawing sizes
-CELL_SIZE = 50
-LINE_WIDTH = 5
+CELL_SIZE = 20
+LINE_WIDTH = 1
 
 # drawing colors
 GREEN = (0, 255, 0)
@@ -18,10 +18,11 @@ BG_COLOR = BLACK
 LINE_COLOR = GRAY
 
 # cell state colors
-COLORS = [RED, GREEN, BLUE]
-STATE_SELECT = 0
-STATE_ALIVE = 1
-STATE_HOVER = 2
+COLORS = [WHITE, RED, GREEN, BLUE]
+STATE_DEAD = 0
+STATE_SELECT = 1
+STATE_ALIVE = 2
+STATE_HOVER = 3
 
 # use (x, y) for drawing coordinates
 # use (i, j) for grid cell indices
@@ -34,8 +35,8 @@ class PygameView:
 
         self.num_rows = rows
         self.num_cols = cols
-        screen_width = cols * CELL_SIZE + LINE_WIDTH * (cols- 1)
-        screen_height = rows * CELL_SIZE + LINE_WIDTH * (rows- 1)
+        screen_width = cols * CELL_SIZE + LINE_WIDTH * (cols - 1)
+        screen_height = rows * CELL_SIZE + LINE_WIDTH * (rows - 1)
 
         pygame.init()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
@@ -53,13 +54,13 @@ class PygameView:
 
     def notify(self, event):
         if isinstance(event, event_manager.TickEvent):
-            # Draw everything
             self.live_sprites.clear(self.screen, self.background)
             self.selected.clear(self.screen, self.background)
             self.cursor.clear(self.screen, self.background)
 
             self.live_sprites.update()
             self.selected.update()
+            self.cursor.update()
 
             live_list = self.live_sprites.draw(self.screen)
             cursor = self.cursor.draw(self.screen)
@@ -81,57 +82,63 @@ class PygameView:
     def refresh_live_sprites(self, live_list):
         self.live_sprites.empty()
         for cell in live_list:
-            newSprite = CellSprite(STATE_ALIVE, cell, self.live_sprites)
+            new_sprite = CellSprite(STATE_ALIVE, cell)
+            new_sprite.add(self.live_sprites)
 
     def mouse_move(self, pos):
-        cell = self.get_cell_indices(pos)
-        if cell:
-            if len(self.selected) == 0:
-                cell_sprite = CellSprite(STATE_HOVER, cell, self.cursor)
-            else:
-                if not self.check_sprite_in_group(cell, self.selected):
-                    cell_sprite = CellSprite(STATE_SELECT, cell, self.selected)
+        sprite = self.get_cell_sprite(pos)
+        if sprite:
+            if len(sprite.groups()) == 0 and len(self.selected) == 0:
+                sprite.state = STATE_HOVER
+                sprite.add(self.cursor)
+            elif self.selected not in sprite.groups() and len(self.selected) != 0:
+                    sprite.add(self.selected)
+                    sprite.state = STATE_SELECT
         else:
             self.cursor.empty()
 
-    def check_sprite_in_group(self, coords, group):
-        for sprite in group:
-            if coords == sprite.coords:
-                return True
-        return False
-
     def select_start(self, pos):
-        cell = self.get_cell_indices(pos)
-        if cell:
-            cell_sprite = CellSprite(STATE_SELECT, cell, self.selected)
+        sprite = self.get_cell_sprite(pos)
+        if sprite:
+            sprite.state = STATE_SELECT
+            sprite.add(self.selected)
 
     def select_end(self, pos):
-        cell = self.get_cell_indices(pos)
-        if cell and not self.check_sprite_in_group(cell, self.selected):
-            cell_sprite = CellSprite(STATE_SELECT, cell, self.selected)
+        sprite = self.get_cell_sprite(pos)
+        if sprite and self.selected not in sprite.groups():
+            sprite.state = STATE_SELECT
+            sprite.add(self.selected)
         cell_list = [cell.coords for cell in self.selected]
         self.selected.empty()
         self.cursor.empty()
         return cell_list
 
-    def get_cell_indices(self, (x,y)):
+    def get_cell_sprite(self, (x, y)):
         if not self.screen.get_rect().collidepoint((x,y)):
             return None
         for line in self.lines:
-            if line.collidepoint((x,y)):
+            if line.collidepoint((x, y)):
                 return None
 
+        for live_cell in self.live_sprites:
+            if live_cell.rect.collidepoint((x, y)):
+                return live_cell
+        for selected_cell in self.selected:
+            if selected_cell.rect.collidepoint((x, y)):
+                return selected_cell
+
         cell_plus_line = (CELL_SIZE + LINE_WIDTH)
-        return (y / cell_plus_line, x / cell_plus_line)
+        coords = (y / cell_plus_line, x / cell_plus_line)
+        return CellSprite(STATE_DEAD, coords)
 
     def draw_lines(self):
         self.lines = []
         for col in range(1, self.num_cols):
-            pos = CELL_SIZE * col + LINE_WIDTH/2 + LINE_WIDTH * (col-1)
+            pos = CELL_SIZE * col + LINE_WIDTH/2 + LINE_WIDTH * (col - 1)
             self.lines.append(self.draw_line((pos, 0), (pos, self.screen.get_height())))
 
         for row in range(1, self.num_rows):
-            pos = CELL_SIZE * row + LINE_WIDTH/2 + LINE_WIDTH * (row-1)
+            pos = CELL_SIZE * row + LINE_WIDTH/2 + LINE_WIDTH * (row - 1)
             self.lines.append(self.draw_line((0, pos), (self.screen.get_width(), pos)))
 
     def draw_line(self, start, end):
@@ -139,8 +146,8 @@ class PygameView:
 
 #--------------------------------------------------------------------------------
 class CellSprite(pygame.sprite.Sprite):
-    def __init__(self, state, coords, group=None):
-        pygame.sprite.Sprite.__init__(self, group)
+    def __init__(self, state, coords):
+        pygame.sprite.Sprite.__init__(self)
         self.coords = coords
         self.state = state
         self.image = pygame.Surface((CELL_SIZE, CELL_SIZE))

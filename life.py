@@ -15,7 +15,7 @@ class CPUSpinnerController:
         while self.keepGoing:
             event = TickEvent()
             self.event_manager.post(event)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
     def notify(self, event):
         if isinstance (event, QuitEvent):
@@ -48,8 +48,8 @@ class InputController:
                     self.event_manager.post(ev)
 
 #--------------------------------------------------------------------------------
-GRID_COLS = 20 # width
-GRID_ROWS = 10 # height
+GRID_COLS = 60 # width
+GRID_ROWS = 35 # height
 
 def main():
     event_manager = EventManager()

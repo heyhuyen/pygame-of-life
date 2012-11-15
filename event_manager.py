@@ -15,37 +15,23 @@ class GameStartedEvent(Event):
         self.name = "Game Started Event"
         self.game = game
 
-class RunEvent(Event):
+class GamePauseEvent(Event):
     def __init__(self):
-        self.name = "Game Run Event"
-
-class PauseEvent(Event):
-    def __init__(self):
-        self.name = "Game Pause Event"
-
-class UniverseConfiguredEvent(Event):
-    def __init__(self, universe):
-        self.name = "Universe Configured Event"
-        self.universe = universe
-
-class EvolveEvent(Event):
-    def __init__(self, live_cells):
-        self.name = "Evolve Event"
-        self.live_cells = live_cells
+        self.name = "Game Pause/Resume Event"
 
 class ConfigureRequest(Event):
-    def __init__(self, cells):
+    def __init__(self, cell_list):
         self.name = "Configure Request"
-        self.cells = cells
+        self.cell_list = cell_list
 
-class ConfigureEvent(Event):
-    def __init__(self, live_cells):
-        self.name = "Configure Event"
-        self.live_cells = live_cells
+class UniverseChangedEvent(Event):
+    def __init__(self, live_list):
+        self.name = "Universe Changed Event"
+        self.live_list = live_list
 
-class HoverEvent(Event):
+class MouseMoveEvent(Event):
     def __init__(self, pos):
-        self.name = "Hover Event"
+        self.name = "Mouse Move Event"
         self.pos = pos
 
 class SelectStartEvent(Event):
